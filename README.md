@@ -1,5 +1,9 @@
-Example Managed File Transfer (MFT) with Fuse Project
+Managed File Transfer (MFT) with Fuse Example Project
 ========================================================
+
+The Camel routes used in this example are explained by the following diagram:
+
+![EIP Diagram](https://raw.githubusercontent.com/sigreen/rest-mft-osgi/master/doc/fuse-mft.png)
 
 To run this example project build the project and deploy to ServiceMix  
 according to the steps below. 
