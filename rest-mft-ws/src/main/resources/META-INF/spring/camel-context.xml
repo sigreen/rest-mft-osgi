@@ -1,0 +1,83 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:camel="http://camel.apache.org/schema/spring" 
+       xmlns:cxf="http://camel.apache.org/schema/cxf"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://camel.apache.org/schema/cxf http://camel.apache.org/schema/cxf/camel-cxf.xsd
+                           http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+  <!-- Set username and password to values you set in etc/user.properties -->
+  <bean id="activemq" class="org.apache.activemq.camel.component.ActiveMQComponent" >
+    <property name="brokerURL" value="tcp://localhost:61616"/>
+    <property name="userName" value="admin"/>
+    <property name="password" value="admin"/>
+  </bean>
+  
+  <!-- Custom Exceptions -->
+  <bean id="missingHeader" class="java.lang.IllegalArgumentException">
+  	<constructor-arg index="0" value="Missing mandatory header: fileName | digitalSignature | destination"/>
+  </bean>
+  <bean id="digitalSignatureError" class="java.lang.IllegalArgumentException">
+  	<constructor-arg index="0" value="The digital signature does not match the calculated signature"/>
+  </bean>
+
+	
+  <bean id="mftUtils" class="org.fusesource.camel.util.MFTUtils">
+  	<property name="hmacKey" value="Abcd1234"/>
+  </bean>
+
+  <cxf:cxfEndpoint id="fileEndpoint"
+                   address="http://localhost:8183/cxf/file"/>
+
+<camelContext trace="false" id="rest-mft-ws" xmlns="http://camel.apache.org/schema/spring">
+  
+  <route customId="true" id="ws-to-jms">
+    <from uri="cxf:bean:fileEndpoint?dataFormat=MESSAGE"/>
+    
+	<!-- Validation of mandatory fields -->
+	<choice>
+		<when>
+			<simple>${header[fileName]} == null or ${header[destination]} == null or ${header[digitalSignature]} == null</simple>
+			<throwException ref="missingHeader"/>
+		</when>
+	</choice>
+	
+	<!-- Verify whether content is text or binary -->
+    <choice>
+	    <when>
+	    	<simple>${header.Content-Type} == 'text/plain'</simple>
+	    	<log message="Converting to string..."/>
+	    	<convertBodyTo type="java.lang.String"/>
+	    	<setHeader headerName="JMSType">
+	    		<simple>${header.Content-Type}</simple>
+	    	</setHeader>
+	    </when>
+	    <otherwise>
+	    	<log message="Converting to binary..."/>
+	    	<convertBodyTo type="java.lang.byte[]"/>
+	    	<setHeader headerName="JMSType">
+	    		<simple>${header.Content-Type}</simple>
+	    	</setHeader>	    	
+	    </otherwise>
+    </choice>
+
+	<!-- Verify Digital Signature -->
+	<bean ref="mftUtils" method="calculateSignature" />
+	<choice>
+		<when>
+			<simple>${header[digitalSignature]} != ${header.calculatedSignature}</simple>
+			<throwException ref="digitalSignatureError"/>
+		</when>
+	</choice>
+
+	<inOnly uri="activemq:incomingFiles" /> 
+	
+	<transform>
+		<constant>File Received</constant>
+	</transform>	
+
+  </route>
+  
+</camelContext>
+
+</beans>
