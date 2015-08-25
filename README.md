@@ -51,7 +51,7 @@ JBossFuse:karaf@root>  log:display
 For your test file, you will see an LAU value printed.  Copy this value as you'll need it later.
 
 6) To test the WS, use apache-jmeter with the JMX project included in rest-mft-ws/src/test/jmeter.  Update
-the JMS project to reference your test files, using the LAU calculated for each test file in step 5.
+the JMX project to reference your test files, using the LAU calculated for each test file in step 5.
 
 Getting Help
 ============================

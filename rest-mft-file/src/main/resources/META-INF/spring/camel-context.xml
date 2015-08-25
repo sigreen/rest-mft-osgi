@@ -1,23 +1,52 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:camel="http://camel.apache.org/schema/spring" 
+       xmlns:camel="http://camel.apache.org/schema/spring"
+       xmlns:ctx="http://www.springframework.org/schema/context"
+       xmlns:osgix="http://www.springframework.org/schema/osgi-compendium"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       					   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+            			   http://www.springframework.org/schema/osgi-compendium http://www.springframework.org/schema/osgi-compendium/spring-osgi-compendium.xsd
                            http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+<!--   <cm:property-placeholder persistent-id="org.fusesource.camel.util.consumer" update-strategy="reload"> -->
+<!--     <cm:default-properties> -->
+<!--       <cm:property name="jms.broker.url" value="tcp://localhost:61616"/> -->
+<!--       <cm:property name="jms.broker.username" value="admin"/> -->
+<!--       <cm:property name="jms.broker.password" value="admin"/> -->
+<!--       <cm:property name="jms.consumer.queueName" value="incomingFiles"/> -->
+<!--     </cm:default-properties> -->
+<!--   </cm:property-placeholder> -->
+  
+	<osgix:cm-properties id="consumerProps" persistent-id="org.fusesource.camel.util.consumer">
+		<prop key="jms.broker.url">tcp://localhost:61616</prop>
+      	<prop key="jms.broker.username">admin</prop>
+      	<prop key="jms.broker.password">admin</prop>
+      	<prop key="jms.consumer.queueName">incomingFiles</prop>
+  	</osgix:cm-properties>
+  
+  	<ctx:property-placeholder properties-ref="consumerProps" />
+  
 
   <!-- Set username and password to values you set in etc/user.properties -->
   <bean id="activemq" class="org.apache.activemq.camel.component.ActiveMQComponent" >
-    <property name="brokerURL" value="tcp://localhost:61616"/>
-    <property name="userName" value="admin"/>
-    <property name="password" value="admin"/>
+    <property name="brokerURL" value="${jms.broker.url}"/>
+    <property name="userName" value="${jms.broker.username}"/>
+    <property name="password" value="${jms.broker.password}"/>
   </bean>
   
   <bean id="mftUtils" class="org.fusesource.camel.util.MFTUtils">
   	<property name="hmacKey" value="Abcd1234"/>
   </bean>
+  
+  <bean id="blobMessageConverter" class="org.fusesource.camel.util.BlobMessageConverter"/>
 
   <camelContext id="rest-mft-file-writer" trace="false" xmlns="http://camel.apache.org/schema/spring">
+  
+  <propertyPlaceholder id="properties" location="ref:consumerProps"/>
+
+  
     <route customId="true" id="file-to-jms">
-      <from uri="activemq:incomingFiles" />
+      <from uri="activemq:queue:{{jms.consumer.queueName}}?disableReplyTo=true&amp;messageConverter=#blobMessageConverter"/>
       <recipientList>
       	<simple>file:target/incomingMFT/${header.destination}/?fileName=${date:now:yyyyMMddHHmmssSSS}-${header.fileName}</simple>
       </recipientList>

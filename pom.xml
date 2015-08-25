@@ -33,6 +33,7 @@
 	<properties>
 		<activemq-version>5.11.0.redhat-620133</activemq-version>
 		<camel-version>2.15.1.redhat-620133</camel-version>
+		<spring-version>3.2.12.RELEASE</spring-version>
 		<cxf-version>3.0.4.redhat-620133</cxf-version>
 		<fabric.version>1.2.0.redhat-133</fabric.version>
 		<slf4j-api-version>1.6.6</slf4j-api-version>
@@ -164,6 +165,10 @@
 					<artifactId>build-helper-maven-plugin</artifactId>
 					<version>1.7</version>
 				</plugin>
+				<plugin>
+                	<groupId>io.fabric8</groupId>
+                	<artifactId>fabric8-maven-plugin</artifactId>
+            	</plugin>
 			</plugins>
 		</pluginManagement>
 	</build>

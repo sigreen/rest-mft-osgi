@@ -1,17 +1,43 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:camel="http://camel.apache.org/schema/spring" 
+       xmlns:camel="http://camel.apache.org/schema/spring"
+       xmlns:ctx="http://www.springframework.org/schema/context"
+       xmlns:osgix="http://www.springframework.org/schema/osgi-compendium"
        xmlns:cxf="http://camel.apache.org/schema/cxf"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-                           http://camel.apache.org/schema/cxf http://camel.apache.org/schema/cxf/camel-cxf.xsd
+       					   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+            			   http://www.springframework.org/schema/osgi-compendium http://www.springframework.org/schema/osgi-compendium/spring-osgi-compendium.xsd
+            			   http://camel.apache.org/schema/cxf http://camel.apache.org/schema/cxf/camel-cxf.xsd
                            http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+<!--   <cm:property-placeholder persistent-id="org.fusesource.camel.util.producer" update-strategy="reload"> -->
+<!--     <cm:default-properties> -->
+<!--       <cm:property name="jms.broker.url" value="tcp://localhost:61616"/> -->
+<!--       <cm:property name="jms.broker.username" value="admin"/> -->
+<!--       <cm:property name="jms.broker.password" value="admin"/> -->
+<!--       <cm:property name="jms.broker.blobTransferPolicy.uploadUrl" value="file:///target/incomingMFT/tmp/store"/> -->
+<!--       <cm:property name="jms.producer.queueName" value="incomingFiles"/> -->
+<!--     </cm:default-properties> -->
+<!--   </cm:property-placeholder> -->
+
+	<osgix:cm-properties id="producerProps" persistent-id="org.fusesource.camel.util.producer">
+		<prop key="jms.broker.url">tcp://localhost:61616</prop>
+      	<prop key="jms.broker.username">admin</prop>
+      	<prop key="jms.broker.password">admin</prop>
+      	<prop key="jms.broker.blobTransferPolicy.uploadUrl">file:///tmp/store</prop>
+      	<prop key="jms.producer.queueName">incomingFiles</prop>
+  	</osgix:cm-properties>
+  
+  	<ctx:property-placeholder properties-ref="producerProps" />
 
   <!-- Set username and password to values you set in etc/user.properties -->
   <bean id="activemq" class="org.apache.activemq.camel.component.ActiveMQComponent" >
-    <property name="brokerURL" value="tcp://localhost:61616"/>
-    <property name="userName" value="admin"/>
-    <property name="password" value="admin"/>
+    <property name="brokerURL" value="${jms.broker.url}?jms.blobTransferPolicy.uploadUrl=${jms.broker.blobTransferPolicy.uploadUrl}"/>
+    <property name="userName" value="${jms.broker.username}"/>
+    <property name="password" value="${jms.broker.password}"/>
   </bean>
+  
+  <bean id="blobMessageConverter" class="org.fusesource.camel.util.BlobMessageConverter"/>
   
   <!-- Custom Exceptions -->
   <bean id="missingHeader" class="java.lang.IllegalArgumentException">
@@ -30,6 +56,8 @@
                    address="http://localhost:8183/cxf/file"/>
 
 <camelContext trace="false" id="rest-mft-ws" xmlns="http://camel.apache.org/schema/spring">
+
+<propertyPlaceholder id="properties" location="ref:producerProps"/>
   
   <route customId="true" id="ws-to-jms">
     <from uri="cxf:bean:fileEndpoint?dataFormat=MESSAGE"/>
@@ -69,8 +97,10 @@
 			<throwException ref="digitalSignatureError"/>
 		</when>
 	</choice>
-
-	<inOnly uri="activemq:incomingFiles" /> 
+	
+    <convertBodyTo type="java.io.InputStream"/>
+    <log message="Sending blob message..."/>
+	<inOnly uri="activemq:queue:{{jms.producer.queueName}}?disableReplyTo=true&amp;messageConverter=#blobMessageConverter" /> 
 	
 	<transform>
 		<constant>File Received</constant>

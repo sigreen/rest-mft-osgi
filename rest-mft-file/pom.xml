@@ -91,6 +91,22 @@
     	<artifactId>org.apache.commons.codec</artifactId>
     	<version>1.8</version>
     </dependency>
+    <dependency>
+    	<groupId>org.apache.activemq</groupId>
+    	<artifactId>activemq-client</artifactId>
+    	<version>5.12.0</version>
+    </dependency>
+    <dependency>
+    	<groupId>org.apache.activemq</groupId>
+    	<artifactId>activemq-pool</artifactId>
+    	<version>5.12.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-jms</artifactId>
+      <version>LATEST</version>
+    </dependency>
+    
   </dependencies>
 
   <build>    
@@ -100,6 +116,16 @@
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
         <extensions>true</extensions>
+        <configuration>
+          <instructions>
+            <Export-Package>org.fusesource.camel.util</Export-Package>
+            <Import-Package>
+              org.apache.activemq*;version="${range;[==,+);${activemq-version}}",
+              org.springframework*;version="${range;[==,+);${spring-version}}",
+              *
+            </Import-Package>
+          </instructions>
+        </configuration>
       </plugin>      
      </plugins>
   </build>
