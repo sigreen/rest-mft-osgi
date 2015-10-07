@@ -57,4 +57,4 @@ Getting Help
 ============================
 
 If you hit any problems please let the Fuse team know on the forums
-  [https://community.jboss.org/en/jbossfuse]
+  [https://community.jboss.org/en/jbossfuse] or contact me directly.
